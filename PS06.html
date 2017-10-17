@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="WRITE YOUR NAME HERE" />
+<meta name="author" content="Sara Culhane" />
 
 <meta name="date" content="2017-10-17" />
 
@@ -216,7 +216,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">STAT/MATH 495: Problem Set 06</h1>
-<h4 class="author"><em>WRITE YOUR NAME HERE</em></h4>
+<h4 class="author"><em>Sara Culhane</em></h4>
 <h4 class="date"><em>2017-10-17</em></h4>
 
 </div>
@@ -268,6 +268,39 @@ n_sample &lt;- 10000</code></pre>
 </div>
 <div id="computation" class="section level1">
 <h1>Computation</h1>
+<pre class="r"><code>set.seed(10)
+data &lt;- data.frame(generate_sample(f,n,sigma))
+z &lt;- list()
+full &lt;- function(f,n,sigma) {
+  for (i in 1:n_sample) {
+    z[[i]] &lt;- generate_sample(f,n,sigma)
+    
+  }
+  return(z)
+}
+samp &lt;-full(f,n,sigma)
+
+preds &lt;- rep(NA,n_sample)
+m &lt;-  rep(NA,n_sample)
+mod1 &lt;- function(list) {
+  for (i in 1:length(list)) {
+    m &lt;- lm(y ~ x, data=data.frame(list[[i]]))
+    preds[i] &lt;- predict(m, test_set)
+
+  }
+  return(preds)
+}
+results &lt;- mod1(samp)</code></pre>
+<pre class="r"><code>t &lt;- rep(NA,n_sample)
+mod2 &lt;- function(list) {
+  for (i in 1:length(list)) {
+    preds[i] &lt;- as.numeric(predict(smooth.spline(list[[i]]$x,list[[i]]$y,df=99),test_set)$y)
+
+
+  }
+  return(preds)
+}
+results2 &lt;- mod2(samp)</code></pre>
 </div>
 <div id="tables" class="section level1">
 <h1>Tables</h1>
@@ -298,21 +331,67 @@ n_sample &lt;- 10000</code></pre>
 </tbody>
 </table>
 <p>where <code>sum = bias_squared + var + irreducible</code>. You can created cleanly formatted tables like the one above by piping a data frame into <code>knitr::kable(digits=4)</code>.</p>
+<pre class="r"><code>lm_MSE &lt;- MSE((.95)^2-results)
+lm_bias2 &lt;- bias2(results,0.95^2)
+lm_var &lt;- var(results)
+
+l_sum &lt;- sum(.95^2,results)
+lm_ir &lt;- l_sum - lm_bias2 - lm_var 
+l &lt;- data.frame(Model = &quot;LM&quot;,MSE = lm_MSE, Bias_square= lm_bias2,var = lm_var, Irreducible = lm_ir, sum = l_sum )</code></pre>
+<pre class="r"><code>sp_MSE &lt;- MSE((.95)^2-results2)
+sp_bias2 &lt;- bias2(results2,0.95^2)
+sp_var  &lt;-  var(results2)
+
+s_sum &lt;-sum(.95^2,results2)
+sp_ir &lt;- s_sum - sp_var -sp_bias2
+s &lt;- data.frame(Model = &quot;Spline&quot;,MSE = sp_MSE, Bias_square= sp_bias2,var = sp_var, Irreducible = sp_ir, sum = s_sum)
+output &lt;- full_join(l,s)
+output %&gt;% kable(digits=9)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Model</th>
+<th align="right">MSE</th>
+<th align="right">Bias_square</th>
+<th align="right">var</th>
+<th align="right">Irreducible</th>
+<th align="right">sum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">LM</td>
+<td align="right">0.01479838</td>
+<td align="right">0.014128362</td>
+<td align="right">0.000670084</td>
+<td align="right">-6.70e-08</td>
+<td align="right">0.01479838</td>
+</tr>
+<tr class="even">
+<td align="left">Spline</td>
+<td align="right">0.01759458</td>
+<td align="right">0.000000045</td>
+<td align="right">0.017596291</td>
+<td align="right">-1.76e-06</td>
+<td align="right">0.01759458</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="analysis" class="section level1">
 <h1>Analysis</h1>
 <p><strong>Questions</strong>:</p>
 <ol style="list-style-type: decimal">
 <li>Based on the topics covered in Lec 2.7, name one possible “sanity check” for your results. Name another if you can.</li>
-<li>In <strong>two</strong> sentences or less, give a rough sketch of what the procedure would be to get the breakdown of <span class="math display">\[\mbox{MSE}\left[\widehat{f}(x)\right]\]</span> for <em>all</em> <span class="math inline">\(x\)</span> in this example, and not just for <span class="math display">\[\mbox{MSE}\left[\widehat{f}(x_0)\right]
-= \mbox{MSE}\left[\widehat{f}(0.95)\right]\]</span>.</li>
-<li>Which of the two models would you choose for predicting the point of interest and why?</li>
+<li><p>In <strong>two</strong> sentences or less, give a rough sketch of what the procedure would be to get the breakdown of <span class="math display">\[\mbox{MSE}\left[\widehat{f}(x)\right]\]</span> for <em>all</em> <span class="math inline">\(x\)</span> in this example, and not just for <span class="math display">\[\mbox{MSE}\left[\widehat{f}(x_0)\right]
+= \mbox{MSE}\left[\widehat{f}(0.95)\right]\]</span>.</p></li>
+<li><p>Which of the two models would you choose for predicting the point of interest and why?</p></li>
 </ol>
 <p><strong>Answers</strong>:</p>
 <ol style="list-style-type: decimal">
-<li></li>
-<li></li>
-<li></li>
+<li><p>Our main sanity check for these results would be verifying that the simplier model (LM) indeed has a lower variance than the more complex model (Spline). Conversely, we could also observe that the simplier model has a higher bias than the more complex model.</p></li>
+<li><p>We would need to create a test set from out simulation, eg. we would assign one of our 10,000 samples of <span class="math inline">\(n=500\)</span> to serve as the test data. Then, we would build a model for each other 9,999 sets then make predictions for <span class="math inline">\(y\)</span> ( perhaps report the RMSE value since we will have to compute a large number of values and store them in a list ) on each using our test set.</p></li>
+<li><p>The Spline model, as although it has a very high variance model to model, it captures the desired value far more often.</p></li>
 </ol>
 </div>
 
